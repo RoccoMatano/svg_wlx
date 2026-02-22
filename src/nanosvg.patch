@@ -1,0 +1,124 @@
+diff --git a/src/nanosvg.h b/src/nanosvg.h
+index f5884c8..7cd7559 100644
+--- a/src/nanosvg.h
++++ b/src/nanosvg.h
+@@ -815,7 +815,6 @@ static float nsvg__convertToPixels(NSVGparser* p, NSVGcoordinate c, float orig,
+ 		case NSVG_UNITS_PERCENT:	return orig + c.value / 100.0f * length;
+ 		default:					return c.value;
+ 	}
+-	return c.value;
+ }
+ 
+ static NSVGgradientData* nsvg__findGradientData(NSVGparser* p, const char* id)
+@@ -1100,66 +1099,11 @@ error:
+ 	}
+ }
+ 
+-// We roll our own string to float because the std library one uses locale and messes things up.
+ static double nsvg__atof(const char* s)
+ {
+-	char* cur = (char*)s;
+-	char* end = NULL;
+-	double res = 0.0, sign = 1.0;
+-	long long intPart = 0, fracPart = 0;
+-	char hasIntPart = 0, hasFracPart = 0;
+-
+-	// Parse optional sign
+-	if (*cur == '+') {
+-		cur++;
+-	} else if (*cur == '-') {
+-		sign = -1;
+-		cur++;
+-	}
+-
+-	// Parse integer part
+-	if (nsvg__isdigit(*cur)) {
+-		// Parse digit sequence
+-		intPart = strtoll(cur, &end, 10);
+-		if (cur != end) {
+-			res = (double)intPart;
+-			hasIntPart = 1;
+-			cur = end;
+-		}
+-	}
+-
+-	// Parse fractional part.
+-	if (*cur == '.') {
+-		cur++; // Skip '.'
+-		if (nsvg__isdigit(*cur)) {
+-			// Parse digit sequence
+-			fracPart = strtoll(cur, &end, 10);
+-			if (cur != end) {
+-				res += (double)fracPart / pow(10.0, (double)(end - cur));
+-				hasFracPart = 1;
+-				cur = end;
+-			}
+-		}
+-	}
+-
+-	// A valid number should have integer or fractional part.
+-	if (!hasIntPart && !hasFracPart)
+-		return 0.0;
+-
+-	// Parse optional exponent
+-	if (*cur == 'e' || *cur == 'E') {
+-		long expPart = 0;
+-		cur++; // skip 'E'
+-		expPart = strtol(cur, &end, 10); // Parse digit sequence with sign
+-		if (cur != end) {
+-			res *= pow(10.0, (double)expPart);
+-		}
+-	}
+-
+-	return res * sign;
++    return atof(s);
+ }
+ 
+-
+ static const char* nsvg__parseNumber(const char* s, char* it, const int size)
+ {
+ 	const int last = size-1;
+@@ -1248,6 +1192,8 @@ static unsigned int nsvg__parseColorHex(const char* str)
+ // This function returns gray (rgb(128, 128, 128) == '#808080') on parse errors
+ // for backwards compatibility. Note: other image viewers return black instead.
+ 
++inline unsigned nsvg__round_color(float x) { return (x >= 0) ? (unsigned)(x + 0.5) : 0; }
++
+ static unsigned int nsvg__parseColorRGB(const char* str)
+ {
+ 	int i;
+@@ -1284,9 +1230,9 @@ static unsigned int nsvg__parseColorRGB(const char* str)
+ 			else break;
+ 		}
+ 		if (i == 3) {
+-			rgbi[0] = roundf(rgbf[0] * 2.55f);
+-			rgbi[1] = roundf(rgbf[1] * 2.55f);
+-			rgbi[2] = roundf(rgbf[2] * 2.55f);
++			rgbi[0] = nsvg__round_color(rgbf[0] * 2.55f);
++			rgbi[1] = nsvg__round_color(rgbf[1] * 2.55f);
++			rgbi[2] = nsvg__round_color(rgbf[2] * 2.55f);
+ 		} else {
+ 			rgbi[0] = rgbi[1] = rgbi[2] = 128;
+ 		}
+@@ -1303,7 +1249,7 @@ typedef struct NSVGNamedColor {
+ 	unsigned int color;
+ } NSVGNamedColor;
+ 
+-NSVGNamedColor nsvg__colors[] = {
++const NSVGNamedColor nsvg__colors[] = {
+ 
+ 	{ "red", NSVG_RGB(255, 0, 0) },
+ 	{ "green", NSVG_RGB( 0, 128, 0) },
+diff --git a/src/nanosvgrast.h b/src/nanosvgrast.h
+index ba512c7..d658c3a 100644
+--- a/src/nanosvgrast.h
++++ b/src/nanosvgrast.h
+@@ -958,8 +958,6 @@ static void nsvg__fillActiveEdges(unsigned char* scanline, int len, NSVGactiveEd
+ }
+ 
+ static float nsvg__clampf(float a, float mn, float mx) {
+-	if (isnan(a))
+-		return mn;
+ 	return a < mn ? mn : (a > mx ? mx : a);
+ }
+ 
