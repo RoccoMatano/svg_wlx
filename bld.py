@@ -12,11 +12,13 @@ env.set_build_dir("src", "build")
 env.Append(CPPPATH=["src"])
 env.Append(CPPDEFINES=["_NO_CRT_STDIO_INLINE", "UNICODE", "_UNICODE"])
 env.modify_flags("CCFLAGS", ["/W2"], ["/W4"])
-env.adapt_for_dll(None, "src/svg_wlx.def")
+env.use_pch()
+env.adapt_for_dll()
 env["SHLIBSUFFIX"] = ".wlx64"
 
-src = ["svg_wlx.cpp"]
-objs = env.Object(source=src)
+src = ["bmp_from_svg.cpp", "svg_wlx.cpp"]
+objs = env.PatchPchSym(source=env.Object(source=src))
+
 libs = [
     "kernel32.lib",
     "user32.lib",

@@ -1,6 +1,0 @@
-EXPORTS
-    ListLoadW
-    ListLoadNextW
-    ListCloseWindow
-    ListGetDetectString
-    ListGetPreviewBitmapW
